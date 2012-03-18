@@ -1,46 +1,62 @@
-name:           Asset File Modified
-version:        1.0.5
-description:    This plugin gives MT the ability to know/publish when an asset's underlying file was last changed.
-author_link:    http://endevver.com/
-author_name:    "Jay Allen, Endevver LLC"
-id:             AssetFileModified
-key:            AssetFileModified
+name:         Asset File Modified
+version:      1.0.2
+description:  <__trans phrase="This plugin gives MT the ability to know/publish when an assets underlying file was last changed.">
+author_link:  http://endevver.com/
+author_name:  "Jay Allen, Endevver LLC"
+id:           AssetFileModified
+key:          AssetFileModified
 schema_version: 1
+l10n_class:   AssetFileModified::L10N
 
 object_types:
-    asset.file:
-        file_mtime: datetime indexed
-    asset.image:
-        file_mtime: datetime indexed
-    asset.video:
-        file_mtime: datetime indexed
-    asset.audio:
-        file_mtime: datetime indexed
-
+  asset.file:
+    file_mtime: datetime indexed
+  asset.image:
+    file_mtime: datetime indexed
+  asset.video:
+    file_mtime: datetime indexed
+  asset.audio:
+    file_mtime: datetime indexed
 tags:
-    function:
-        AssetFileModified: $AssetFileModified::AssetFileModified::hdlr_asset_file_modified
-    block:
-        AssetsUploaded:    $AssetFileModified::AssetFileModified::hdlr_assets_uploaded
-
+  function:
+    AssetFileModified: $AssetFileModified::AssetFileModified::hdlr_asset_file_modified
+  block:
+    AssetsUploaded:    $AssetFileModified::AssetFileModified::hdlr_assets_uploaded
 callbacks:
-#    init_app: 				     $AssetFileModified::AssetFileModified::init_app
-    MT::App::CMS::template_param.edit_asset: $AssetFileModified::AssetFileModified::cb_edit_asset_param
-    MT::App::CMS::template_param.list_asset: $AssetFileModified::AssetFileModified::cb_list_assets_param
-    cms_upload_file.file:                    $AssetFileModified::AssetFileModified::on_upload
-    cms_upload_file.image:                   $AssetFileModified::AssetFileModified::on_upload
-    cms_upload_file.video:                   $AssetFileModified::AssetFileModified::on_upload
-    cms_upload_file.audio:                   $AssetFileModified::AssetFileModified::on_upload
-    api_upload_file.file:                    $AssetFileModified::AssetFileModified::on_upload
-    api_upload_file.image:                   $AssetFileModified::AssetFileModified::on_upload
-    api_upload_file.video:                   $AssetFileModified::AssetFileModified::on_upload
-    api_upload_file.audio:                   $AssetFileModified::AssetFileModified::on_upload
-#    MT::Asset::pre_load:                     $AssetFileModified::AssetFileModified::cb_asset_preload
-#    MT::Asset::post_load:                    $AssetFileModified::AssetFileModified::cb_asset_postload
-#    cms_pre_load.asset:                      $AssetFileModified::AssetFileModified::cb_asset_preload
-#    cms_post_load.asset:                     $AssetFileModified::AssetFileModified::cb_asset_postload
-
+#  init_app:                                $AssetFileModified::AssetFileModified::init_app
+  MT::App::CMS::template_param.edit_asset: $AssetFileModified::AssetFileModified::cb_edit_asset_param
+  MT::App::CMS::template_param.list_asset: $AssetFileModified::AssetFileModified::cb_list_assets_param
+  cms_upload_file.file:                    $AssetFileModified::AssetFileModified::on_upload
+  cms_upload_file.image:                   $AssetFileModified::AssetFileModified::on_upload
+  cms_upload_file.video:                   $AssetFileModified::AssetFileModified::on_upload
+  cms_upload_file.audio:                   $AssetFileModified::AssetFileModified::on_upload
+  api_upload_file.file:                    $AssetFileModified::AssetFileModified::on_upload
+  api_upload_file.image:                   $AssetFileModified::AssetFileModified::on_upload
+  api_upload_file.video:                   $AssetFileModified::AssetFileModified::on_upload
+  api_upload_file.audio:                   $AssetFileModified::AssetFileModified::on_upload
+  cms_pre_load_filtered_list.asset:        $AssetFileModified::AssetFileModified::cb_pre_list_asset
+#  MT::App::CMS::template_param.asset_options: $AssetFileModified::AssetFileModified::cb_param_asset_options
+#  MT::Asset::pre_load:                     $AssetFileModified::AssetFileModified::cb_asset_preload
+#  MT::Asset::post_load:                    $AssetFileModified::AssetFileModified::cb_asset_postload
+#  cms_pre_load.asset:                      $AssetFileModified::AssetFileModified::cb_asset_preload
+#  cms_post_load.asset:                     $AssetFileModified::AssetFileModified::cb_asset_postload
 upgrade_functions:
-    populate_asset_file_modified:
-        version_limit: 1
-        code:          $AssetFileModified::AssetFileModified::upgrade_set_file_modified
+  populate_asset_file_modified:
+    version_limit: 1
+    code: $AssetFileModified::AssetFileModified::upgrade_set_file_modified
+applications:
+  cms:
+    methods:
+      update_mtime: $AssetFileModified::AssetFileModified::update_mtime
+list_properties:
+  asset:
+    file_mtime:
+      auto: 1
+      label: mtime
+content_actions:
+  asset:
+    update_mtime:
+      class: icon-create mt-open-dialog
+      label: Update Asset mtime
+      mode: update_mtime
+      order: 200

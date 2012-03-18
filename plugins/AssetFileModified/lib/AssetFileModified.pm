@@ -8,6 +8,42 @@ use Data::Dumper;
 #use MT::Log::Log4perl qw( l4mtdump ); use Log::Log4perl qw( :resurrect );
 our $logger;
 
+sub doLog {
+    my ($msg) = @_; 
+    use MT::Log; 
+    my $log = MT::Log->new; 
+    if ( defined( $msg ) ) { 
+        $log->message( $msg ); 
+    }
+    $log->save or die $log->errstr; 
+}
+
+sub cb_param_asset_options {
+    my ( $cb, $app, $param, $tmpl ) = @_;
+    return unless (($param->{url} || '') =~ /jpg|png|gif$/);
+    my $plugin = MT->component("AssetFileModified");
+}
+
+sub update_mtime {
+    my $app     = shift;
+    my $blog = $app->blog;
+    my $user = $app->user;
+    if ( $blog ) {
+#        if (! is_user_can( $blog, $user, 'edit_assets' ) ) {
+#            return MT->translate( 'Permission denied.' );
+#        }
+    }
+    else {
+    
+    }
+    my $iter = MT->model('asset')->load_iter({ class => '*' });
+    while ( my $asset = $iter->() ) {
+        $asset->file_modified(undef)
+            if $asset->file_path and -e $asset->file_path;
+    }
+    0;
+}
+
 
 =head1 NAME
 
@@ -84,9 +120,8 @@ becomes
 =cut
 
 sub hdlr_assets_uploaded {
-    my $ctx             = shift;
-    my ( $args, $cond ) = @_;
-    my $class           = MT->model('asset');
+    my ( $ctx, $args, $cond ) = @_;
+    my $class        = MT->model('asset');
 
     # Set defaults
     $args->{limit}  ||= delete $args->{lastn} || 50;
@@ -97,7 +132,7 @@ sub hdlr_assets_uploaded {
 
     my (%blog_terms, %blog_args, %terms, %args);
     $ctx->set_blog_load_context($args, \%blog_terms, \%blog_args)
-        or return;
+        or return $ctx->error($ctx->errstr);
 
     # Default load terms apply blog filter (if any) but NO class filter
     %terms = ( %blog_terms, class => '*' );
@@ -126,7 +161,7 @@ sub hdlr_assets_uploaded {
     $terms{parent}      = \$is_null;
 
     my @assets = $class->load( \%terms, \%args )
-        or return $ctx->_hdlr_pass_tokens_else( @_ );
+        or return _hdlr_pass_tokens_else(@_);
 
     $ctx->{__stash}{assets} = \@assets;
     return $ctx->_hdlr_assets( $args, $cond );
@@ -179,6 +214,52 @@ sub cb_list_assets_param {
         # });
     }
 }
+
+
+
+
+
+
+sub cb_pre_list_asset {
+    my $cb = shift;
+    my ( $app, $filter, $options, $cols ) = @_;
+
+    eval { require Image::Size; };
+    my $no_lib = $@ ? 1 : 0;
+#    doLog(MT::Util::encode_html(Dumper($options)));
+#    TODO FIX: use %term and %params from $options.
+    my $iter = MT->model('asset')->load_iter({
+                                   class     => '*',
+                                   blog_id   => $options->{blog_id}
+                                 },
+                                 {
+                                   sort      => $options->{sort_by} || 'created_on',
+                                   direction => $options->{sort_order} || 'descend',
+                                   limit     => $options->{limit} || 25,
+                                   offset    => $options->{offset} || 0,
+                                 });
+    while ( my $asset = $iter->() ) {
+        next unless ($asset->class =~ m/image|audio|video|file/);
+        my $current_ts = $asset->file_mtime || '';
+        my $ts_meta_db = $asset->file_modified() || '';
+        next if (($current_ts == $ts_meta_db) || $no_lib);
+        if ($asset->class eq 'image') {
+            my $fh;
+            open $fh, $asset->file_path;
+            seek $fh, 0, 0;
+            my ( $w, $h, $id ) = Image::Size::imgsize($fh);
+            close $fh;
+            $asset->image_width( $w );
+            $asset->image_height( $h );
+        }
+        $asset->file_mtime( $ts_meta_db );
+        $asset->save;
+    }
+}
+
+
+
+
 
 =head2 cb_edit_asset_param( $cb, $app, $param, $tmpl )
 
@@ -242,12 +323,8 @@ no warnings 'redefine';
 
 sub file_modified {
     my $asset         = shift;
-
-    # Check if the file exists first.
-    return if !$asset->file_path || !-e $asset->file_path;
-
     my $file_modified = $asset->file_mtime(@_) || 0;
-    return $file_modified if $file_modified;
+#    return $file_modified if $file_modified;
 
     # Derive modified timestamp from stat() of file path
     my $ts = eval { (stat( $asset->file_path ))[9] };
