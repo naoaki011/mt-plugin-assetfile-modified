@@ -1,11 +1,12 @@
 name:           Asset File Modified
 version:        1.0.5
-description:    This plugin gives MT the ability to know/publish when an asset's underlying file was last changed.
+description:    <__trans phrase="This plugin gives MT the ability to know/publish when an asset's underlying file was last changed.">
 author_link:    http://endevver.com/
 author_name:    "Jay Allen, Endevver LLC"
 id:             AssetFileModified
 key:            AssetFileModified
 schema_version: 1
+l10n_class:     AssetFileModified::L10N
 
 object_types:
     asset.file:
